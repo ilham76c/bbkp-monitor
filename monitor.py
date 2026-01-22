@@ -158,7 +158,7 @@ def notify_and_shutdown(item):
 
 
 def main():
-    # handle_time_window()
+    handle_time_window()
     
     r = requests.get(
         API_URL, 
