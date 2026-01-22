@@ -1,9 +1,10 @@
 import requests
 import smtplib
 from email.mime.text import MIMEText
-from datetime import datetime
+from datetime import datetime, time, timezone, timedelta
 import os
 import sys
+import re
 
 # mengatasi warning certificate verification sementara
 import urllib3
@@ -11,6 +12,11 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 from dotenv import load_dotenv
 load_dotenv()
+
+WIB = timezone(timedelta(hours=7))
+START_TIME = time(6, 0)   # 06:00
+END_TIME   = time(9, 0)   # 09:00
+
 
 print("EMAIL_SENDER:", os.getenv("EMAIL_SENDER"))
 print("TELEGRAM_BOT_TOKEN:", "OK" if os.getenv("TELEGRAM_BOT_TOKEN") else "NOT SET")
@@ -35,11 +41,11 @@ TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
 # GitHub config
-IS_GITHUB = "GITHUB_ACTIONS" in os.environ
+IS_GITHUB = os.getenv("GITHUB_ACTIONS") == "true"
 GITHUB_TOKEN = os.environ["GH_TOKEN"]
-REPO = os.getenv("GITHUB_REPOSITORY", "ilham76c/bbkp-monitor")
-
+REPO = os.getenv("GITHUB_REPOSITORY")
 WORKFLOW_FILE = "monitor.yml"
+
 # =========================================
 
 def test_telegram_bot():
@@ -47,6 +53,7 @@ def test_telegram_bot():
     r = requests.get(url)
     data = r.json()
     print(data)
+
 
 def send_email(item):
     file_name = item.get("file", " ").split("/")[-1]
@@ -92,7 +99,7 @@ def send_telegram(item):
     
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
+        "chat_id": int(TELEGRAM_CHAT_ID),
         "text": message,
         "reply_markup": {
             "inline_keyboard": [
@@ -110,10 +117,12 @@ def send_telegram(item):
     print("TELEGRAM RESPONSE:", r.text)
 
 
-def disable_workflow():
+def disable_workflow(reason=""):
     if not IS_GITHUB:
         print("ℹ️ Local mode: skip disable workflow")
         return
+    
+    print(f"🛑 Disabling workflow: {reason}")
 
     url = f"https://api.github.com/repos/{REPO}/actions/workflows/{WORKFLOW_FILE}/disable"
     headers = {
@@ -128,6 +137,17 @@ def disable_workflow():
         print("⚠️ Gagal disable workflow:", r.status_code, r.text)
 
 
+def handle_time_window():
+    now = datetime.now(WIB).time()
+
+    if now > END_TIME:
+        disable_workflow("Monitoring window closed (after 09:00 WIB)")
+        exit()
+
+    if now < START_TIME:
+        print("⏸ Before monitoring window")
+        exit()
+
 
 def notify_and_shutdown(item):
     # test_telegram_bot()
@@ -138,6 +158,8 @@ def notify_and_shutdown(item):
 
 
 def main():
+    # handle_time_window()
+    
     r = requests.get(
         API_URL, 
         params=PARAMS, 
@@ -148,10 +170,11 @@ def main():
         print("API error:", r.status_code)
         return
 
-    data = r.json().get("data", []).get("result", [])
+    data = r.json().get("data", {}).get("result", [])
     if (data):
         for item in data:
-            if item.get("created_date", "").split(" ")[0].split("-")[1] == "12":
+            created_date = item.get("created_date", "")
+            if re.search(r"-(12)-2025", created_date):
                 notify_and_shutdown(item)
                 return
 
