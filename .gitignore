@@ -1,0 +1,63 @@
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+*.env
+
+# =========================
+# Python cache / compiled
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+
+# =========================
+# Virtual Environment
+# =========================
+venv/
+.venv/
+env/
+ENV/
+
+# =========================
+# Logs & Runtime files
+# =========================
+*.log
+*.pid
+
+# =========================
+# OS / Editor junk
+# =========================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# =========================
+# Coverage / Test
+# =========================
+.coverage
+htmlcov/
+.pytest_cache/
+
+# =========================
+# Temporary / Local files
+# =========================
+tmp/
+temp/
+.cache/
+
+# =========================
+# Security / Certs
+# =========================
+*.pem
+*.crt
+*.key
+
+# =========================
+# GitHub Actions (logs only)
+# =========================
+*.out
