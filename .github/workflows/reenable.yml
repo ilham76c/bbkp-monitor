@@ -1,0 +1,21 @@
+name: Re-enable BBKP Monitor
+
+on:
+  schedule:
+    # 05:55 WIB = 22:55 UTC (hari sebelumnya)
+    - cron: "55 22 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Enable monitor workflow
+        run: |
+          curl -X PUT \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/monitor.yml/enable
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
